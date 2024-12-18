@@ -20,8 +20,35 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 }
+
+@keyframes slider {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-slider {
+  display: flex;
+  gap: 8px; /* space between items */
+  animation: slider 40s linear infinite;
+}
+
+.animate-slider > div {
+  flex-shrink: 0;
+  min-width: 1rem; /* Adjust as per your card size */
+}
+
+.container {
+  overflow: hidden;
+  width: 100%;
+}
+
