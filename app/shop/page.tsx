@@ -1,6 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';  // Import styles
+import { FaTrashAlt } from 'react-icons/fa'; // Import trash icon for "dustbin"
 
 interface Product {
   id: number;
@@ -11,125 +14,245 @@ interface Product {
   category: string;
 }
 
-const ShopPage = () => {
+const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [cart, setCart] = useState<Product[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
 
   // Fetch products from API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/product');
-        if (!response.ok) throw new Error('Failed to fetch products');
+        const response = await fetch('/api/product'); // Replace with actual API
         const data = await response.json();
-        if (Array.isArray(data)) setProducts(data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setLoading(false);
+        setProducts(data);  // Setting the fetched data
+      } catch (err) {
+        toast.error("Failed to fetch products");
       }
     };
+
     fetchProducts();
   }, []);
 
-  // Add to Cart and store in localStorage
+  const categories = ['All', 'Serums', 'Mists', 'Cleansers', 'Moisturizers'];
+
+  const filteredProducts = selectedCategory === 'All' 
+    ? products 
+    : products.filter(product => product.category === selectedCategory);
+
   const handleAddToCart = (product: Product) => {
-    // Fetch the existing cart from localStorage
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingProduct = cart.find(item => item.product.id === product.id);
 
-    // Check if the product is already in the cart
-    const existingProductIndex = existingCart.findIndex((item: Product) => item.id === product.id);
-    if (existingProductIndex !== -1) {
-      // If product exists, update the quantity
-      existingCart[existingProductIndex].quantity += 1;
+    if (existingProduct) {
+      // Increase the quantity if product already exists in cart
+      setCart(
+        cart.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
+      toast.success(`${product.name} quantity increased in your cart!`);
     } else {
-      // If product does not exist, add the product to the cart with quantity 1
-      existingCart.push({ ...product, quantity: 1 });
+      setCart([...cart, { product, quantity: 1 }]);
+      toast.success(`${product.name} has been added to your cart!`);
     }
-
-    // Save the updated cart to localStorage
-    localStorage.setItem('cart', JSON.stringify(existingCart));
-
-    // Update the cart state
-    setCart(existingCart);
   };
 
-  // Filtered products based on category
-  const filteredProducts =
-    selectedCategory === 'All'
-      ? products
-      : products.filter((product) => product.category === selectedCategory);
+  const handleRemoveFromCart = (productId: number) => {
+    setCart(cart.filter(item => item.product.id !== productId));
+    toast.info("Product removed from your cart");
+  };
+
+  const handleIncreaseQuantity = (productId: number) => {
+    setCart(
+      cart.map(item =>
+        item.product.id === productId
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    );
+  };
+
+  const handleDecreaseQuantity = (productId: number) => {
+    setCart(
+      cart.map(item =>
+        item.product.id === productId && item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      )
+    );
+  };
+
+  const getTotalPrice = () => {
+    return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5
+      }
+    }
+  };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-r from-[#042421] via-[#074740] to-[#00534a] py-20 px-4">
-      {/* Cart Icon */}
-      <div className="fixed top-5 right-5">
-        <Link href="/cart">
-          <button className="relative bg-gray-800 text-white py-2 px-4 rounded-md shadow-lg">
-            🛒 Cart
-            {cart.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-sm rounded-full w-6 h-6 flex items-center justify-center">
-                {cart.length}
-              </span>
-            )}
-          </button>
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#042421] via-[#074740] to-[#00534a] p-10">
+      <div className="max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16 pt-8"
+        >
+          <h1 className="text-5xl font-bold text-[#A0D3D4] mb-6">
+            Discover Your Glow
+          </h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Premium skincare products for your daily routine
+          </p>
+        </motion.div>
 
-      <h1 className="text-4xl font-extrabold mb-8 text-center text-[#e0feff]">Our Products</h1>
+        {/* Categories */}
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
+          {categories.map((category) => (
+            <motion.button
+              key={category}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSelectedCategory(category)}
+              className={`category-button ${selectedCategory === category ? 'bg-blue-500 text-white' : 'bg-transparent text-[#A0D3D4] border border-[#A0D3D4]'} px-8 py-3 rounded-full transition-all duration-300`}
+            >
+              {category}
+            </motion.button>
+          ))}
+        </div>
 
-      <div className="mb-8 text-center">
-        {['All', 'Hand & Body', 'Makeup'].map((category) => (
-          <button
-            key={category}
-            className={`px-6 py-3 m-2 text-sm md:text-base ${
-              selectedCategory === category
-                ? 'bg-[#4b7772] text-white'
-                : 'bg-gray-200 text-gray-700'
-            } border rounded-md shadow-md hover:shadow-lg transition-transform`}
-            onClick={() => setSelectedCategory(category)}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="text-center text-white">Loading...</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-9">
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="border p-4 rounded-lg shadow-lg bg-[#e4fcfe] hover:scale-105 transition-transform"
-              >
+        {/* Products Grid */}
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+        >
+          {filteredProducts.map((product) => (
+            <motion.div
+              key={product.id}
+              variants={itemVariants}
+              className="product-card p-6 bg-white shadow-xl rounded-xl transition-transform duration-500 hover:scale-105"
+            >
+              <div className="relative mb-4 overflow-hidden rounded-xl">
                 <img
                   src={product.image}
                   alt={product.name}
-                  className="w-full h-48 px-10 object-cover rounded-md"
+                  className="w-full h-64 object-cover transition-transform duration-500 hover:scale-110"
                 />
-                <h2 className="mt-4 text-xl font-semibold text-gray-800">{product.name}</h2>
-                <p className="text-gray-500 mt-1">{product.description}</p>
-                <p className="mt-2 font-bold text-lg text-gray-800">₹{product.price}</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-gray-800">{product.name}</h3>
+                <p className="text-gray-600 text-sm">{product.description}</p>
+                <div className="flex justify-between items-center mt-4">
+                  <span className="text-lg font-bold text-[#202C4C]">${product.price}</span>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAddToCart(product)}
+                    className="px-6 py-2 bg-[#042421] text-white rounded-full hover:shadow-lg transition-all duration-300"
+                  >
+                    Add to Cart
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
 
-                <button
-                  className="mt-4 bg-[#4b7772] text-white py-2 px-4 rounded-lg hover:bg-[#365d54]"
-                  onClick={() => handleAddToCart(product)}
-                >
-                  Add to Cart 🛒
-                </button>
+      {/* Cart Section */}
+      <div className="fixed bottom-10 right-10 bg-white p-6 rounded-lg shadow-xl w-80">
+        <h3 className="text-xl font-semibold text-[#202C4C]">Your Cart</h3>
+
+        {/* Cart Items List */}
+        <div className="max-h-60 overflow-y-auto mt-4 space-y-4">
+          {cart.length > 0 ? (
+            cart.map(({ product, quantity }) => (
+              <div key={product.id} className="flex flex-col gap-4 bg-gray-100 p-4 rounded-lg shadow-md">
+                <div className="flex items-center gap-4">
+                  <img src={product.image} alt={product.name} className="w-20 h-20 object-cover rounded-md" />
+                  <div>
+                    <p className="font-medium text-gray-800">{product.name}</p>
+                    <p className="text-gray-500 text-sm">${product.price}</p>
+                  </div>
+                </div>
+
+                {/* Quantity Controls */}
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleDecreaseQuantity(product.id)}
+                    className="px-4 py-2 bg-gray-300 rounded-full text-sm text-gray-800 hover:bg-gray-300 transition-all duration-300"
+                  >
+                    -
+                  </button>
+                  <span className="text-gray-800 font-semibold">{quantity}</span>
+                  <button
+                    onClick={() => handleIncreaseQuantity(product.id)}
+                    className="px-4 py-2 bg-gray-200 rounded-full text-sm text-gray-800 hover:bg-gray-300 transition-all duration-300"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Remove Button */}
+                <div>
+                  <button
+                    onClick={() => handleRemoveFromCart(product.id)}
+                    className="w-full mt-2 px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    <FaTrashAlt />
+                    <span>Remove</span>
+                  </button>
+                </div>
               </div>
             ))
           ) : (
-            <div className="text-center text-white">No products available in this category.</div>
+            <p className="text-gray-500">Your cart is empty.</p>
           )}
         </div>
-      )}
+
+        {/* Cart Total */}
+        <div className="flex justify-between mt-4 border-t-2 pt-4">
+          <span className="text-lg font-semibold">Total:</span>
+          <span className="text-lg font-bold text-[#202C4C]">${getTotalPrice()}</span>
+        </div>
+
+        {/* Checkout Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="mt-6 px-6 py-3 bg-[#042421] text-white rounded-full hover:shadow-lg transition-all duration-300 w-full"
+        >
+          Checkout
+        </motion.button>
+      </div>
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };
 
-export default ShopPage;
+export default Index;

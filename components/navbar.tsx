@@ -83,11 +83,7 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Cart Icon */}
-          <div className="hidden md:flex items-center">
-            <Link href="/cart" className="text-green-950 hover:text-gray-200 transition">
-              <FiShoppingCart size={28} />
-            </Link>
-          </div>
+          
         </div>
       </div>
 
@@ -106,9 +102,7 @@ const Navbar: React.FC = () => {
         <Link href="/shop" className="block text-white py-2 text-center hover:bg-[#155b53]">
           Shop
         </Link>
-        <Link href="/cart" className="block text-white py-2 text-center hover:bg-[#155b53]">
-          Cart
-        </Link>
+        
       </div>
     </nav>
   );
